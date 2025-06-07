@@ -1,3 +1,4 @@
+use super::avp::AVP;
 use super::command_codes::CommandCode;
 
 #[derive(Debug)]
@@ -9,7 +10,7 @@ pub struct DiameterHeader {
     application_id: ApplicationId,
     hop_by_hop: u32,
     end_to_end: u32,
-    avps: Vec<u32>,
+    avps: Vec<AVP>,
 }
 
 #[derive(Debug)]
@@ -44,5 +45,9 @@ impl DiameterHeader {
             end_to_end,
             avps: vec![],
         }
+    }
+    
+    pub fn add_avp(&mut self, avp: AVP) {
+        self.avps.push(avp);
     }
 }
