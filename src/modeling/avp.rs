@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Avp {
@@ -6,7 +7,7 @@ pub struct Avp {
     flags: u8,
     length: u32, // 24 bits | how many octets in the AVP
     vendor_id: Option<u32>,
-    data: Vec<u8>,
+    data: Rc<Vec<u8>>,
 }
 
 #[derive(Debug)]
@@ -31,22 +32,25 @@ impl AvpFlags {
 }
 
 #[derive(Debug)]
-pub struct AvpData<T>(T);
+pub struct AvpData<T> {
+    raw_value: T,
+    encoded_value: Option<Rc<Vec<u8>>>,
+}
 
 impl Avp {
     pub fn new(
         code: u32,
         flags: AvpFlags,
         vendor_id: Option<u32>,
-        value: Box<dyn ApvDataFormater>,
+        mut value: Box<dyn ApvDataFormater>,
     ) -> Self {
-        let encoded_data: Vec<u8> = value.encode();
+        let encoded_data = value.encode();
         match vendor_id {
-            Some(v_id) => Self {
+            Some(_) => Self {
                 code,
                 flags: flags.value(),
                 length: 8 + encoded_data.len() as u32,
-                vendor_id: None,
+                vendor_id,
                 data: value.encode(),
             },
             None => Self {
@@ -100,7 +104,10 @@ impl Avp {
 
 impl<T> AvpData<T> {
     pub fn new(data: T) -> Self {
-        Self(data)
+        Self {
+            raw_value: data,
+            encoded_value: None,
+        }
     }
 }
 
@@ -114,70 +121,58 @@ pub type Float64 = AvpData<f64>;
 pub type Grouped<'a> = AvpData<Vec<&'a Avp>>;
 
 pub trait ApvDataFormater {
-    fn encode(&self) -> Vec<u8>;
+    fn encode(&mut self) -> Rc<Vec<u8>>;
 }
 
-impl ApvDataFormater for OctetString {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
-    }
+pub trait ToBeBytes {
+    fn to_be_bytes(&self) -> Vec<u8>;
 }
 
-impl ApvDataFormater for Integer32 {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
-    }
+macro_rules! impl_to_be_bytes {
+    ($($t:ty),*) => {
+        $(
+            impl ToBeBytes for $t {
+                fn to_be_bytes(&self) -> Vec<u8> {
+                    <$t>::to_be_bytes(*self).to_vec()
+                }
+            }
+        )*
+    };
 }
 
-impl ApvDataFormater for Integer64 {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
-    }
-}
+impl_to_be_bytes!(u8, i32, i64, u32, u64, f32, f64);
 
-impl ApvDataFormater for Unsigned32 {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
-    }
-}
-
-impl ApvDataFormater for Unsigned64 {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
-    }
-}
-
-impl ApvDataFormater for Float32 {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
-    }
-}
-
-impl ApvDataFormater for Float64 {
-    fn encode(&self) -> Vec<u8> {
-        Vec::from(self.0.to_be_bytes())
+impl<T: ToBeBytes> ApvDataFormater for AvpData<T> {
+    fn encode(&mut self) -> Rc<Vec<u8>> {
+        let encoded_data = Rc::new(Vec::from(self.raw_value.to_be_bytes()));
+        self.encoded_value = Some(Rc::clone(&encoded_data));
+        encoded_data
     }
 }
 
 impl<'a> ApvDataFormater for Grouped<'a> {
-    fn encode(&self) -> Vec<u8> {
-        let mut encoded_date: Vec<Vec<u8>> = vec![];
-        for avp in self.0.iter() {
-            encoded_date.push(Vec::from(avp.code.to_be_bytes()));
-            encoded_date.push(vec![avp.flags]);
-            encoded_date.push(Vec::from(avp.length.to_be_bytes()));
+    fn encode(&mut self) -> Rc<Vec<u8>> {
+        let mut collated_data: Vec<Vec<u8>> = vec![];
+        for avp in self.raw_value.iter() {
+            collated_data.push(Vec::from(avp.code.to_be_bytes()));
+            collated_data.push(vec![avp.flags]);
+            collated_data.push(Vec::from(avp.length.to_be_bytes()));
             match avp.vendor_id {
                 Some(v_id) => {
-                    encoded_date.push(Vec::from(v_id.to_be_bytes()));
+                    collated_data.push(Vec::from(v_id.to_be_bytes()));
                 }
                 _ => {}
             }
-            encoded_date.push(avp.data.clone());
+            // collated_data.push(avp.data.clone());
         }
-        encoded_date
-            .iter()
-            .flat_map(|el| el.iter())
-            .cloned()
-            .collect()
+        let encoded_data = Rc::new(
+            collated_data
+                .iter()
+                .flat_map(|el| el.iter())
+                .cloned()
+                .collect(),
+        );
+        self.encoded_value = Some(Rc::clone(&encoded_data));
+        encoded_data
     }
 }
