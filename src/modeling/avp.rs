@@ -63,6 +63,10 @@ impl Avp {
         }
     }
 
+    fn get_avp_encoded_data(&self) -> Rc<Vec<u8>> {
+        Rc::clone(&self.data)
+    }
+
     pub fn encode(&self) -> Vec<u32> {
         let mut encoded_data = vec![];
         encoded_data.push(self.code);
@@ -152,27 +156,11 @@ impl<T: ToBeBytes> ApvDataFormater for AvpData<T> {
 
 impl<'a> ApvDataFormater for Grouped<'a> {
     fn encode(&mut self) -> Rc<Vec<u8>> {
-        let mut collated_data: Vec<Vec<u8>> = vec![];
+        let mut encoded_data: Vec<u8> = vec![];
         for avp in self.raw_value.iter() {
-            collated_data.push(Vec::from(avp.code.to_be_bytes()));
-            collated_data.push(vec![avp.flags]);
-            collated_data.push(Vec::from(avp.length.to_be_bytes()));
-            match avp.vendor_id {
-                Some(v_id) => {
-                    collated_data.push(Vec::from(v_id.to_be_bytes()));
-                }
-                _ => {}
-            }
-            // collated_data.push(avp.data.clone());
+            let mut encoded_avp: Vec<u8> = (*avp.get_avp_encoded_data()).clone();
+            encoded_data.append(&mut encoded_avp);
         }
-        let encoded_data = Rc::new(
-            collated_data
-                .iter()
-                .flat_map(|el| el.iter())
-                .cloned()
-                .collect(),
-        );
-        self.encoded_value = Some(Rc::clone(&encoded_data));
-        encoded_data
+        Rc::new(encoded_data)
     }
 }
