@@ -50,7 +50,7 @@ impl Avp {
             Some(_) => Self {
                 code,
                 flags: flags.value(),
-                length: 8 + encoded_data.len() as u32,
+                length: 12 + encoded_data.len() as u32,
                 vendor_id,
                 raw_data: value.encode(),
                 encoded_data: None,
@@ -58,7 +58,7 @@ impl Avp {
             None => Self {
                 code,
                 flags: flags.with_vendor_bit(),
-                length: 12 + encoded_data.len() as u32,
+                length: 8 + encoded_data.len() as u32,
                 vendor_id,
                 raw_data: value.encode(),
                 encoded_data: None,
@@ -70,7 +70,7 @@ impl Avp {
         Rc::clone(&self.raw_data)
     }
 
-    pub fn encode(&self) -> Rc<Vec<u32>> {
+    pub fn encode(&mut self) -> Rc<Vec<u32>> {
         match self.encoded_data {
             Some(ref encoded_data) => encoded_data.clone(),
             None => {
@@ -103,12 +103,16 @@ impl Avp {
                 if remainder != 0 {
                     let mut encoded_u32 = 0u32;
                     for i in 0..remainder {
-                        encoded_u32 = encoded_u32 & collated_data[i] as u32;
-                        encoded_u32 = encoded_u32 << 8;
+                        encoded_u32 = encoded_u32 | collated_data[i] as u32;
+                        if i < remainder - 1 {
+                            encoded_u32 = encoded_u32 << 8;
+                        }
                     }
                     encoded_data.push(encoded_u32);
                 }
-                Rc::new(encoded_data)
+                let rc_encoded_data = Rc::new(encoded_data);
+                self.encoded_data = Some(Rc::clone(&rc_encoded_data));
+                rc_encoded_data
             }
         }
     }
@@ -131,6 +135,7 @@ pub type Unsigned64 = AvpData<u64>;
 pub type Float32 = AvpData<f32>;
 pub type Float64 = AvpData<f64>;
 pub type Grouped<'a> = AvpData<Vec<&'a Avp>>;
+pub type UTF8String<'a> = AvpData<&'a str>;
 
 pub trait AvpDataFormater {
     fn encode(&mut self) -> Rc<Vec<u8>>;
@@ -173,6 +178,19 @@ impl AvpDataFormater for OctetString {
             Some(encoded_value) => Rc::clone(&encoded_value),
             None => {
                 let encoded_data = Rc::new(self.raw_value.clone());
+                self.encoded_value = Some(Rc::clone(&encoded_data));
+                encoded_data
+            }
+        }
+    }
+}
+
+impl<'a> AvpDataFormater for UTF8String<'a> {
+    fn encode(&mut self) -> Rc<Vec<u8>> {
+        match &self.encoded_value {
+            Some(encoded_value) => Rc::clone(&encoded_value),
+            None => {
+                let encoded_data = Rc::new(Vec::from(self.raw_value.as_bytes()));
                 self.encoded_value = Some(Rc::clone(&encoded_data));
                 encoded_data
             }
