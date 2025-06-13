@@ -11,8 +11,7 @@ impl AvpDataFormater for Grouped {
             None => {
                 let mut encoded_data: Vec<u8> = vec![];
                 for avp in self.raw_value.iter() {
-                    let mut encoded_avp: Vec<u8> = (*avp.get_avp_encoded_data()).clone();
-                    encoded_data.append(&mut encoded_avp);
+                    encoded_data.extend_from_slice(&avp.encoded_data.as_ref().unwrap());
                 }
                 Rc::new(encoded_data)
             }

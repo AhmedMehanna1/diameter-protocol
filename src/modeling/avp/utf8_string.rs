@@ -1,9 +1,9 @@
 use crate::modeling::avp::data::{AvpData, AvpDataFormater};
 use std::rc::Rc;
 
-pub type UTF8String<'a> = AvpData<&'a str>;
+pub type UTF8String = AvpData<String>;
 
-impl<'a> AvpDataFormater for UTF8String<'a> {
+impl AvpDataFormater for UTF8String {
     fn encode(&mut self) -> Rc<Vec<u8>> {
         match &self.encoded_value {
             Some(encoded_value) => Rc::clone(&encoded_value),
