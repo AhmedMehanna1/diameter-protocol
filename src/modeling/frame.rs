@@ -1,4 +1,4 @@
-use super::avp::Avp;
+use crate::modeling::avp::avp::Avp;
 use super::command_codes::CommandCode;
 
 #[derive(Debug)]
