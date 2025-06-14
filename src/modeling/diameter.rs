@@ -35,7 +35,7 @@ use crate::modeling::avp::avp::Avp;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub struct DiameterHeader {
+pub struct DiameterMessage {
     version: u8,
     message_length: u32, // 24 bits
     command_flags: CommandFlags,
@@ -80,7 +80,7 @@ impl ApplicationId {
     }
 }
 
-impl DiameterHeader {
+impl DiameterMessage {
     pub fn new(
         command_flags: CommandFlags,
         command_code: &'static CommandCode,
