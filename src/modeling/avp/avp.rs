@@ -31,11 +31,6 @@ use crate::modeling::avp::data::AvpDataFormater;
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::modeling::avp::numbers::Unsigned32;
-
-pub enum AvpValue {
-    Unsigned32(Unsigned32)
-}
 
 #[derive(Debug)]
 pub struct Avp {
@@ -73,7 +68,7 @@ impl Avp {
         code: u32,
         flags: AvpFlags,
         vendor_id: Option<u32>,
-        mut value: Box<dyn AvpDataFormater>,
+        mut value: impl AvpDataFormater,
     ) -> Self {
         let encoded_data = value.encode();
         let (length, avp_flags) = match vendor_id {
@@ -85,7 +80,7 @@ impl Avp {
             flags: avp_flags,
             length: length + encoded_data.len() as u32,
             vendor_id,
-            raw_data: value.encode(),
+            raw_data: encoded_data,
             encoded_data: None,
         }
     }
