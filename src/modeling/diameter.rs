@@ -67,8 +67,8 @@ impl CommandFlags {
 
 #[derive(Debug)]
 pub enum ApplicationId {
-    Gx = 16777238,
-    Gy = 4,
+    Gx,
+    Gy,
 }
 
 impl ApplicationId {
