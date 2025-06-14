@@ -1,7 +1,41 @@
+//! # AVP Module
+//!
+//! This module defines the structure and functionalities related to AVPs in Diameter messages.
+//!
+//! ## AVP Format
+//! The diagram below illustrates the format for an AVP:
+//! ```text
+//!   0                   1                   2                   3
+//!   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//!  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//!  |                         Command-Code                          |
+//!  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//!  |  Flags       |                 AVP Length                     |
+//!  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//!  |                         Vendor ID (optional)                  |
+//!  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//!  |                             Data                              |
+//!  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//!  |                             Data             |    Padding     |
+//!  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//!
+//!  AVP Flags:
+//!    0 1 2 3 4 5 6 7
+//!   +-+-+-+-+-+-+-+-+  V(endor), M(andatory), P(rivate)
+//!   |V M P r r r r r|  r(eserved)
+//!   +-+-+-+-+-+-+-+-+
+//! ```
+//!
+
 use crate::modeling::avp::data::AvpDataFormater;
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::modeling::avp::numbers::Unsigned32;
+
+pub enum AvpValue {
+    Unsigned32(Unsigned32)
+}
 
 #[derive(Debug)]
 pub struct Avp {
@@ -10,7 +44,7 @@ pub struct Avp {
     length: u32, // 24 bits | how many octets in the AVP
     vendor_id: Option<u32>,
     raw_data: Rc<Vec<u8>>,
-    pub(super) encoded_data: Option<Rc<Vec<u8>>>,
+    pub(crate) encoded_data: Option<Rc<Vec<u8>>>,
 }
 
 #[derive(Debug)]
@@ -62,9 +96,8 @@ impl Avp {
             None => {
                 let mut encoded_data: Vec<u8> = vec![];
                 encoded_data.extend_from_slice(&self.code.to_be_bytes());
-                let masked_length = self.length & 0x00ffffffu32;
-                let flags_and_length = (self.flags as u32) << 24 | masked_length;
-                encoded_data.extend(flags_and_length.to_be_bytes());
+                encoded_data.push(self.flags);
+                encoded_data.extend_from_slice(&self.length.to_be_bytes()[1..]);
                 match self.vendor_id {
                     None => {}
                     Some(vendor_id) => {
