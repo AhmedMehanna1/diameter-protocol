@@ -2,6 +2,7 @@ use crate::modeling::avp::data::{AvpData, AvpDataFormater};
 use std::rc::Rc;
 
 pub type OctetString = AvpData<Vec<u8>>;
+pub type DiameterURI = OctetString;
 
 impl AvpDataFormater for OctetString {
     fn encode(&mut self) -> Rc<Vec<u8>> {

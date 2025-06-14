@@ -2,6 +2,7 @@ use crate::modeling::avp::data::{AvpData, AvpDataFormater};
 use std::rc::Rc;
 
 pub type UTF8String = AvpData<String>;
+pub type Identity = UTF8String;
 
 impl AvpDataFormater for UTF8String {
     fn encode(&mut self) -> Rc<Vec<u8>> {
