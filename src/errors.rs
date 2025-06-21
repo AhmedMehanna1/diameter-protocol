@@ -5,6 +5,8 @@ use std::fmt::{Debug, Display, Formatter};
 pub enum Error {
     ClientError(&'static str),
     IoError(std::io::Error),
+    EncodeError(&'static str),
+    DecodeError(&'static str),
 }
 
 pub type DiameterResult<T> = Result<T, Error>;
@@ -14,6 +16,8 @@ impl Display for Error {
         match self {
             Error::ClientError(msg) => write!(f, "{}", msg),
             Error::IoError(e) => write!(f, "{}", e),
+            Error::EncodeError(msg) => write!(f, "{}", msg),
+            Error::DecodeError(msg) => write!(f, "{}", msg),
         }
     }
 }

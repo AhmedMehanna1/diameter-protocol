@@ -1,18 +1,40 @@
+use crate::errors::DiameterResult;
+use crate::errors::Error::DecodeError;
+use crate::modeling::avp::avp::AvpValue;
 use crate::modeling::avp::data::{AvpData, AvpDataFormater};
-use std::rc::Rc;
+use std::io::{Read, Write};
 
 pub type UTF8String = AvpData<String>;
 pub type Identity = UTF8String;
 
 impl AvpDataFormater for UTF8String {
-    fn encode(&mut self) -> Rc<Vec<u8>> {
-        match &self.encoded_value {
-            Some(encoded_value) => Rc::clone(&encoded_value),
-            None => {
-                let encoded_data = Rc::new(Vec::from(self.raw_value.as_bytes()));
-                self.encoded_value = Some(Rc::clone(&encoded_data));
-                encoded_data
-            }
-        }
+    type Output = String;
+
+    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+        writer.write(self.0.as_bytes())?;
+        Ok(())
+    }
+
+    fn decode_from<R: Read>(
+        reader: &mut R,
+        length: Option<usize>,
+    ) -> DiameterResult<AvpData<Self::Output>> {
+        let mut buffer = match length {
+            None => Err(DecodeError("Length is required to parse UTF8String")),
+            Some(length) => Ok(vec![0u8; length]),
+        }?;
+        reader.read_exact(&mut buffer)?;
+        let string = String::from_utf8(buffer).unwrap();
+        Ok(UTF8String::new(string))
+    }
+
+    fn len(&self) -> u32 {
+        self.0.len() as u32
+    }
+}
+
+impl Into<AvpValue> for UTF8String {
+    fn into(self) -> AvpValue {
+        AvpValue::UTF8String(self)
     }
 }

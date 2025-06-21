@@ -31,11 +31,18 @@
 //! ```
 
 use super::command_codes::CommandCode;
+use crate::errors::DiameterResult;
 use crate::modeling::avp::avp::Avp;
-use std::ops::Deref;
+use std::io::Write;
 
 #[derive(Debug)]
 pub struct DiameterMessage {
+    header: DiameterHeader,
+    avps: Vec<Avp>,
+}
+
+#[derive(Debug)]
+pub struct DiameterHeader {
     version: u8,
     message_length: u32, // 24 bits
     command_flags: CommandFlags,
@@ -43,7 +50,6 @@ pub struct DiameterMessage {
     application_id: ApplicationId,
     hop_by_hop: u32,
     end_to_end: u32,
-    avps: Vec<Avp>,
 }
 
 #[derive(Debug)]
@@ -89,35 +95,34 @@ impl DiameterMessage {
         end_to_end: u32,
     ) -> Self {
         Self {
-            version: 1,
-            message_length: 32,
-            command_flags,
-            command_code,
-            application_id,
-            hop_by_hop,
-            end_to_end,
+            header: DiameterHeader {
+                version: 1,
+                message_length: 32,
+                command_flags,
+                command_code,
+                application_id,
+                hop_by_hop,
+                end_to_end,
+            },
             avps: vec![],
         }
     }
 
-    pub fn add_avp(&mut self, mut avp: Avp) {
-        avp.encode();
+    pub fn add_avp(&mut self, avp: Avp) {
         self.avps.push(avp);
     }
 
-    pub fn encode(&self) -> Vec<u8> {
-        let mut encoded_data = vec![];
-        encoded_data.push(self.version);
-        encoded_data.extend_from_slice(&self.message_length.to_be_bytes()[1..]);
-        encoded_data.push(self.command_flags.value());
-        encoded_data.extend_from_slice(&self.command_code.get_code().to_be_bytes()[1..]);
-        encoded_data.extend_from_slice(&self.application_id.value().to_be_bytes());
-        encoded_data.extend_from_slice(&self.hop_by_hop.to_be_bytes());
-        encoded_data.extend_from_slice(&self.end_to_end.to_be_bytes());
-        for avp in self.avps.iter() {
-            let x = avp.encoded_data.as_ref().unwrap().deref().clone();
-            encoded_data.extend_from_slice(&x);
+    pub fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+        writer.write(&self.header.version.to_be_bytes())?;
+        writer.write(&self.header.message_length.to_be_bytes()[1..])?;
+        writer.write(&self.header.command_flags.value().to_be_bytes())?;
+        writer.write(&self.header.command_code.get_code().to_be_bytes()[1..])?;
+        writer.write(&self.header.application_id.value().to_be_bytes())?;
+        writer.write(&self.header.hop_by_hop.to_be_bytes())?;
+        writer.write(&self.header.end_to_end.to_be_bytes())?;
+        for avp in self.avps.iter_mut() {
+            avp.encode_to(writer)?;
         }
-        encoded_data
+        Ok(())
     }
 }

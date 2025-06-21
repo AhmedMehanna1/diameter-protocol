@@ -1,23 +1,55 @@
+use crate::errors::Error::EncodeError;
+use crate::errors::{DiameterResult, Error};
+use crate::modeling::avp::avp::AvpValue;
 use crate::modeling::avp::data::{AvpData, AvpDataFormater};
-use chrono::{DateTime, Utc};
-use std::rc::Rc;
+use crate::modeling::avp::octet_string::OctetString;
+use chrono::{DateTime, TimeZone, Utc};
+use std::io::{Read, Write};
 
 pub type Time = AvpData<DateTime<Utc>>;
 
 const RFC868_OFFSET: u32 = 2208988800; // Diff. between 1970 and 1900 in seconds.
 
 impl AvpDataFormater for Time {
-    fn encode(&mut self) -> Rc<Vec<u8>> {
-        match &self.encoded_value {
-            Some(encoded_value) => Rc::clone(&encoded_value),
-            None => {
-                let unix_timestamp = self.raw_value.timestamp();
-                let diameter_timestamp = unix_timestamp + RFC868_OFFSET as i64;
-                let diameter_timestamp = diameter_timestamp as u32;
-                let encoded_data = Rc::new(Vec::from(diameter_timestamp.to_be_bytes()));
-                self.encoded_value = Some(Rc::clone(&encoded_data));
-                encoded_data
-            }
+    type Output = DateTime<Utc>;
+
+    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+        let unix_timestamp = self.0.timestamp();
+        let diameter_timestamp = unix_timestamp + RFC868_OFFSET as i64;
+        if diameter_timestamp > u32::MAX as i64 {
+            Err(EncodeError(
+                "Time is too far in the future to fit into 32 bits",
+            ))?
         }
+        let diameter_timestamp = diameter_timestamp as u32;
+        let encoded_data = Vec::from(diameter_timestamp.to_be_bytes());
+        writer.write(&encoded_data)?;
+        Ok(())
+    }
+
+    fn decode_from<R: Read>(
+        reader: &mut R,
+        _: Option<usize>,
+    ) -> DiameterResult<AvpData<Self::Output>> {
+        let mut b = [0; 4];
+        reader.read_exact(&mut b)?;
+
+        let diameter_timestamp = u32::from_be_bytes(b); // seconds since 1900
+        let unix_timestamp = diameter_timestamp as i64 - RFC868_OFFSET as i64;
+        let timestamp = Utc
+            .timestamp_opt(unix_timestamp, 0)
+            .single()
+            .ok_or_else(|| Error::DecodeError("Invalid time"))?;
+        Ok(Time::new(timestamp))
+    }
+
+    fn len(&self) -> u32 {
+        4
+    }
+}
+
+impl Into<AvpValue> for Time {
+    fn into(self) -> AvpValue {
+        AvpValue::Time(self)
     }
 }
