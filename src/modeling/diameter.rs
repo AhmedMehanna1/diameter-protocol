@@ -97,7 +97,7 @@ impl DiameterMessage {
         Self {
             header: DiameterHeader {
                 version: 1,
-                message_length: 32,
+                message_length: 20,
                 command_flags,
                 command_code,
                 application_id,
@@ -113,8 +113,12 @@ impl DiameterMessage {
     }
 
     pub fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+        let mut message_length = self.header.message_length;
+        for avp in self.avps.iter_mut() {
+            message_length += avp.get_length() + avp.get_padding();
+        }
         writer.write(&self.header.version.to_be_bytes())?;
-        writer.write(&self.header.message_length.to_be_bytes()[1..])?;
+        writer.write(&message_length.to_be_bytes()[1..])?;
         writer.write(&self.header.command_flags.value().to_be_bytes())?;
         writer.write(&self.header.command_code.get_code().to_be_bytes()[1..])?;
         writer.write(&self.header.application_id.value().to_be_bytes())?;

@@ -10,7 +10,7 @@ pub type DiameterURI = OctetString;
 impl AvpDataFormater for OctetString {
     type Output = Vec<u8>;
 
-    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
         writer.write(&self.0)?;
         Ok(())
     }

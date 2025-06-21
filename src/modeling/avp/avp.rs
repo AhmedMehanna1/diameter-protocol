@@ -100,16 +100,17 @@ impl AvpFlags {
 }
 
 impl AvpHeader {
-    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
+    fn encode_to<W: Write>(&self, value_length: u32, writer: &mut W) -> DiameterResult<()> {
         writer.write_all(&self.code.to_be_bytes())?;
         writer.write(&[self.flags])?;
-        writer.write_all(&self.length.to_be_bytes()[1..])?;
+        let avp_length = self.length + value_length;
+        writer.write_all(&avp_length.to_be_bytes()[1..])?;
         match self.vendor_id {
-            None => Ok(()),
             Some(vendor_id) => {
                 writer.write_all(&vendor_id.to_be_bytes())?;
                 Ok(())
             }
+            None => Ok(()),
         }
     }
 }
@@ -136,26 +137,25 @@ impl Avp {
         }
     }
 
-    pub fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
-        self.header.encode_to(writer)?;
-        self.value.encode(&mut self.header, writer)?;
+    pub fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
+        self.header.encode_to(self.value.len(), writer)?;
+        self.value.encode(writer)?;
         self.add_padding(writer)?;
         Ok(())
     }
 
     pub fn get_length(&self) -> u32 {
-        self.header.length
+        self.header.length + self.value.len()
     }
 
-    fn add_padding<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+    pub fn get_padding(&self) -> u32 {
         let remainder = self.header.length % 4;
-        if remainder != 0 {
-            println!("{}", remainder);
-            let padding = 4 - remainder;
-            self.header.length += padding;
-            for _ in 0..padding {
-                writer.write(&[0])?;
-            }
+        if remainder != 0 { 4 - remainder } else { 0 }
+    }
+
+    fn add_padding<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
+        for _ in 0..self.get_padding() {
+            writer.write(&[0])?;
         }
         Ok(())
     }
@@ -164,17 +164,28 @@ impl Avp {
 macro_rules! impl_encode_avp_value_for_enum_variants {
     ($enum_name:ident { $($variant:ident($inner_ty:ty)),* }) => {
         impl $enum_name {
-            fn encode<W: Write>(&mut self, avp_header: &mut AvpHeader, writer: &mut W) -> DiameterResult<()> {
+            fn encode<W: Write>(
+                &self,
+                writer: &mut W
+            ) -> DiameterResult<()> {
                 match self {
                     $(
                         $enum_name::$variant(value) => {
                             value.encode_to(writer)?;
-                            avp_header.length += value.len();
                         }
                     )*
-                    _ => todo!("Unhandled AvpValue variants to encode data"),
                 }
                 Ok(())
+            }
+
+            fn len(&self) -> u32 {
+                match self {
+                    $(
+                        $enum_name::$variant(value) => {
+                            value.len()
+                        }
+                    )*
+                }
             }
         }
     };

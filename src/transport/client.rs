@@ -32,12 +32,14 @@ impl DiameterClient {
         }
     }
 
-    // pub fn write(&mut self, message: &DiameterMessage) -> DiameterResult<()> {
-    //     if let Some(ref mut stream) = self.stream {
-    //         stream.write(message.encode().as_slice()).unwrap();
-    //         Ok(())
-    //     } else {
-    //         Err(ClientError("Connection not established yet!"))
-    //     }
-    // }
+    pub fn send_message(&mut self, message: &mut DiameterMessage) -> DiameterResult<()> {
+        if let Some(ref mut stream) = self.stream {
+            let mut buffer = vec![];
+            message.encode_to(&mut buffer)?;
+            stream.write_all(&buffer)?;
+            Ok(())
+        } else {
+            Err(ClientError("Connection not established yet!"))
+        }
+    }
 }

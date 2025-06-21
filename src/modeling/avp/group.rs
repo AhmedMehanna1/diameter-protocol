@@ -8,8 +8,8 @@ pub type Grouped = AvpData<Vec<Avp>>;
 impl AvpDataFormater for Grouped {
     type Output = Vec<Avp>;
 
-    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
-        for avp in &mut self.0 {
+    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
+        for avp in &self.0 {
             avp.encode_to(writer)?;
         }
         Ok(())

@@ -13,7 +13,7 @@ const RFC868_OFFSET: u32 = 2208988800; // Diff. between 1970 and 1900 in seconds
 impl AvpDataFormater for Time {
     type Output = DateTime<Utc>;
 
-    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
         let unix_timestamp = self.0.timestamp();
         let diameter_timestamp = unix_timestamp + RFC868_OFFSET as i64;
         if diameter_timestamp > u32::MAX as i64 {

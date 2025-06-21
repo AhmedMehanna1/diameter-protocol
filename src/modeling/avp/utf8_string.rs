@@ -7,10 +7,16 @@ use std::io::{Read, Write};
 pub type UTF8String = AvpData<String>;
 pub type Identity = UTF8String;
 
+impl UTF8String {
+    pub fn from_str(value: &'static str) -> Self {
+        Self(value.to_string())
+    }
+}
+
 impl AvpDataFormater for UTF8String {
     type Output = String;
 
-    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
+    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
         writer.write(self.0.as_bytes())?;
         Ok(())
     }

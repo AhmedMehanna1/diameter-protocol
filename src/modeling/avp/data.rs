@@ -18,7 +18,7 @@ impl<T> AvpData<T> {
 pub trait AvpDataFormater {
     type Output;
 
-    fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()>;
+    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()>;
     fn decode_from<R: Read>(
         reader: &mut R,
         length: Option<usize>,
