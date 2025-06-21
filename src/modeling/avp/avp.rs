@@ -100,10 +100,9 @@ impl AvpFlags {
 }
 
 impl AvpHeader {
-    fn encode_to<W: Write>(&self, value_length: u32, writer: &mut W) -> DiameterResult<()> {
+    fn encode_to<W: Write>(&self, avp_length: u32, writer: &mut W) -> DiameterResult<()> {
         writer.write_all(&self.code.to_be_bytes())?;
         writer.write(&[self.flags])?;
-        let avp_length = self.length + value_length;
         println!("avp_length: {}", avp_length);
         writer.write_all(&avp_length.to_be_bytes()[1..])?;
         match self.vendor_id {
@@ -139,7 +138,7 @@ impl Avp {
     }
 
     pub fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
-        self.header.encode_to(self.value.len(), writer)?;
+        self.header.encode_to(self.get_length(), writer)?;
         self.value.encode(writer)?;
         self.add_padding(writer)?;
         Ok(())
@@ -150,7 +149,7 @@ impl Avp {
     }
 
     pub fn get_padding(&self) -> u32 {
-        let remainder = self.get_length() % 4;
+        let remainder = (self.header.length + self.value.len()) % 4;
         if remainder != 0 { 4 - remainder } else { 0 }
     }
 
