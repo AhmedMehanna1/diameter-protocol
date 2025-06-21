@@ -104,6 +104,7 @@ impl AvpHeader {
         writer.write_all(&self.code.to_be_bytes())?;
         writer.write(&[self.flags])?;
         let avp_length = self.length + value_length;
+        println!("avp_length: {}", avp_length);
         writer.write_all(&avp_length.to_be_bytes()[1..])?;
         match self.vendor_id {
             Some(vendor_id) => {
@@ -149,7 +150,7 @@ impl Avp {
     }
 
     pub fn get_padding(&self) -> u32 {
-        let remainder = self.header.length % 4;
+        let remainder = self.get_length() % 4;
         if remainder != 0 { 4 - remainder } else { 0 }
     }
 
