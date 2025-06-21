@@ -1,6 +1,6 @@
 use crate::errors::DiameterResult;
 use crate::errors::Error::ClientError;
-use crate::modeling::diameter::DiameterMessage;
+use crate::modeling::diameter::{DiameterHeader, DiameterMessage};
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
 
@@ -37,6 +37,8 @@ impl DiameterClient {
             let mut buffer = vec![];
             message.encode_to(&mut buffer)?;
             stream.write_all(&buffer)?;
+            let header = DiameterMessage::decode_from(stream)?;
+            println!("{:?}", header);
             Ok(())
         } else {
             Err(ClientError("Connection not established yet!"))

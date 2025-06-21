@@ -43,7 +43,7 @@ use crate::modeling::avp::unsigned32::Unsigned32;
 use crate::modeling::avp::unsigned64::Unsigned64;
 use crate::modeling::avp::utf8_string::{Identity, UTF8String};
 use std::fmt::Debug;
-use std::io::Write;
+use std::io::{Read, Write};
 
 #[derive(Debug)]
 pub struct Avp {
@@ -55,7 +55,7 @@ pub struct Avp {
 pub struct AvpHeader {
     code: u32,
     flags: u8,
-    length: u32, // 24 bits | how many octets in the AVP
+    pub(crate) length: u32, // 24 bits | how many octets in the AVP
     vendor_id: Option<u32>,
 }
 
@@ -97,6 +97,14 @@ impl AvpFlags {
     fn with_vendor_bit(&self) -> u8 {
         self.value() | Self::VENDOR_FLAG_BIT
     }
+
+    fn has_vendor_bit(flag: u8) -> bool {
+        if Self::VENDOR_FLAG_BIT & flag == Self::VENDOR_FLAG_BIT {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl AvpHeader {
@@ -112,6 +120,31 @@ impl AvpHeader {
             }
             None => Ok(()),
         }
+    }
+
+    pub fn decode_from<R: Read>(reader: &mut R) -> DiameterResult<Self> {
+        let mut b = [0u8; 8];
+        reader.read_exact(&mut b)?;
+        for bb in 0..b.len() {
+            println!("bb: {:08b}", bb);
+        }
+        let command_code = u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
+        let flag = b[4];
+        let length = u32::from_be_bytes([0, b[5], b[6], b[7]]);
+        let header = AvpHeader {
+            code: command_code,
+            flags: flag,
+            length,
+            vendor_id: match AvpFlags::has_vendor_bit(flag) {
+                false => None,
+                true => {
+                    let mut b = [0u8; 4];
+                    reader.read_exact(&mut b)?;
+                    Some(u32::from_be_bytes([b[0], b[1], b[2], b[3]]))
+                }
+            },
+        };
+        Ok(header)
     }
 }
 
