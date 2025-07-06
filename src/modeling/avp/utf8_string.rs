@@ -1,7 +1,7 @@
 use crate::errors::DiameterResult;
 use crate::errors::Error::DecodeError;
 use crate::modeling::avp::avp::AvpValue;
-use crate::modeling::avp::data::{AvpData, AvpDataFormater};
+use crate::modeling::avp::data::AvpData;
 use std::io::{Read, Write};
 
 pub type UTF8String = AvpData<String>;
@@ -13,18 +13,16 @@ impl UTF8String {
     }
 }
 
-impl AvpDataFormater for UTF8String {
-    type Output = String;
-
-    fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
+impl UTF8String {
+    pub(super) fn encode_to<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
         writer.write(self.0.as_bytes())?;
         Ok(())
     }
 
-    fn decode_from<R: Read>(
+    pub(super) fn decode_from<R: Read>(
         reader: &mut R,
         length: Option<usize>,
-    ) -> DiameterResult<AvpData<Self::Output>> {
+    ) -> DiameterResult<AvpData<String>> {
         let mut buffer = match length {
             None => Err(DecodeError("Length is required to parse UTF8String")),
             Some(length) => Ok(vec![0u8; length]),
@@ -34,7 +32,7 @@ impl AvpDataFormater for UTF8String {
         Ok(UTF8String::new(string))
     }
 
-    fn len(&self) -> u32 {
+    pub(super) fn len(&self) -> u32 {
         self.0.len() as u32
     }
 }

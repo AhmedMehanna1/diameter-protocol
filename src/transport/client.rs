@@ -1,8 +1,10 @@
 use crate::errors::DiameterResult;
 use crate::errors::Error::ClientError;
 use crate::modeling::diameter::{DiameterHeader, DiameterMessage};
+use crate::modeling::message::dictionary::Dictionary;
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
+use std::sync::Arc;
 
 pub struct DiameterClient {
     address: &'static str,
@@ -32,13 +34,18 @@ impl DiameterClient {
         }
     }
 
-    pub fn send_message(&mut self, message: &mut DiameterMessage) -> DiameterResult<()> {
+    pub fn send_message(
+        &mut self,
+        message: &mut DiameterMessage,
+        dict: Arc<Dictionary>,
+    ) -> DiameterResult<()> {
         if let Some(ref mut stream) = self.stream {
             let mut buffer = vec![];
             message.encode_to(&mut buffer)?;
             stream.write_all(&buffer)?;
-            let header = DiameterMessage::decode_from(stream)?;
-            println!("{:?}", header);
+            let response_diameter_message =
+                DiameterMessage::decode_from(stream, Arc::clone(&dict))?;
+            println!("{:?}", response_diameter_message);
             Ok(())
         } else {
             Err(ClientError("Connection not established yet!"))

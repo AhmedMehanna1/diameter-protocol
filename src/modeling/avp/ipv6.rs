@@ -1,21 +1,16 @@
 use crate::errors::DiameterResult;
 use crate::impl_avp_data_encode_to_address;
 use crate::modeling::avp::avp::AvpValue;
-use crate::modeling::avp::data::{AvpData, AvpDataFormater};
+use crate::modeling::avp::data::AvpData;
 use std::io::Read;
 use std::net::Ipv6Addr;
 
 pub type IPv6 = AvpData<Ipv6Addr>;
 
-impl AvpDataFormater for IPv6 {
-    type Output = Ipv6Addr;
-
+impl IPv6 {
     impl_avp_data_encode_to_address!(IPv6, Ipv6Addr);
 
-    fn decode_from<R: Read>(
-        reader: &mut R,
-        _: Option<usize>,
-    ) -> DiameterResult<AvpData<Self::Output>> {
+    pub(super) fn decode_from<R: Read>(reader: &mut R) -> DiameterResult<AvpData<Ipv6Addr>> {
         let mut b = [0; 16];
         reader.read_exact(&mut b)?;
 
@@ -32,7 +27,7 @@ impl AvpDataFormater for IPv6 {
         Ok(IPv6::new(ip))
     }
 
-    fn len(&self) -> u32 {
+    pub(super) fn len(&self) -> u32 {
         16
     }
 }

@@ -28,7 +28,6 @@
 //!
 
 use crate::errors::DiameterResult;
-use crate::modeling::avp::data::AvpDataFormater;
 use crate::modeling::avp::enumerated::Enumerated;
 use crate::modeling::avp::float32::Float32;
 use crate::modeling::avp::float64::Float64;
@@ -42,8 +41,11 @@ use crate::modeling::avp::time::Time;
 use crate::modeling::avp::unsigned32::Unsigned32;
 use crate::modeling::avp::unsigned64::Unsigned64;
 use crate::modeling::avp::utf8_string::{Identity, UTF8String};
+use crate::modeling::message::command_code::CommandCode;
+use crate::modeling::message::dictionary::Dictionary;
 use std::fmt::Debug;
 use std::io::{Read, Write};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Avp {
@@ -63,6 +65,26 @@ pub struct AvpHeader {
 pub enum AvpFlags {
     M, // Mandatory
     O, // Optional
+}
+
+#[derive(Debug)]
+pub enum AvpType {
+    Unknown,
+    AddressIPv4,
+    AddressIPv6,
+    Identity,
+    DiameterURI,
+    Enumerated,
+    Float32,
+    Float64,
+    Grouped,
+    Integer32,
+    Integer64,
+    OctetString,
+    Time,
+    Unsigned32,
+    Unsigned64,
+    UTF8String,
 }
 
 #[derive(Debug)]
@@ -125,8 +147,11 @@ impl AvpHeader {
     pub fn decode_from<R: Read>(reader: &mut R) -> DiameterResult<Self> {
         let mut b = [0u8; 8];
         reader.read_exact(&mut b)?;
-        for bb in 0..b.len() {
-            println!("bb: {:08b}", bb);
+        for i in 1..b.len() + 1 {
+            print!("{:08b} ", b[i - 1]);
+            if i % 4 == 0 {
+                println!()
+            }
         }
         let command_code = u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
         let flag = b[4];
@@ -150,23 +175,24 @@ impl AvpHeader {
 
 impl Avp {
     pub fn new<T: Into<AvpValue>>(
-        code: u32,
+        code: CommandCode,
         flags: AvpFlags,
         vendor_id: Option<u32>,
         value: T,
     ) -> Self {
+        let avp_value: AvpValue = value.into();
         let (length, avp_flags) = match vendor_id {
-            Some(_) => (12, flags.with_vendor_bit()),
-            None => (8, flags.value()),
+            Some(_) => (12 + avp_value.len(), flags.with_vendor_bit()),
+            None => (8 + avp_value.len(), flags.value()),
         };
         Self {
             header: AvpHeader {
-                code,
+                code: code.get_code(),
                 flags: avp_flags,
                 length,
                 vendor_id,
             },
-            value: value.into(),
+            value: avp_value,
         }
     }
 
@@ -177,13 +203,57 @@ impl Avp {
         Ok(())
     }
 
+    pub fn decode_from<R: Read>(reader: &mut R, dict: Arc<Dictionary>) -> DiameterResult<Self> {
+        let header = AvpHeader::decode_from(reader)?;
+
+        let avp_type = dict
+            .get_avp_type(header.code, header.vendor_id)
+            .unwrap_or(&AvpType::Unknown);
+        dbg!(avp_type);
+
+        let value: AvpValue = match avp_type {
+            AvpType::Unsigned32 => Unsigned32::decode_from(reader)?.into(),
+            AvpType::Identity => Identity::decode_from(
+                reader,
+                match header.vendor_id {
+                    Some(_) => Some((header.length - 12) as usize),
+                    None => Some((header.length - 8) as usize),
+                },
+            )?
+            .into(),
+            AvpType::UTF8String => UTF8String::decode_from(
+                reader,
+                match header.vendor_id {
+                    Some(_) => Some((header.length - 12) as usize),
+                    None => Some((header.length - 8) as usize),
+                },
+            )?
+            .into(),
+            AvpType::Enumerated => Enumerated::decode_from(reader)?.into(),
+            AvpType::Grouped => Grouped::decode_from(
+                reader,
+                match header.vendor_id {
+                    Some(_) => (header.length - 12) as usize,
+                    None => (header.length - 8) as usize,
+                },
+                Arc::clone(&dict),
+            )?
+            .into(),
+            _ => todo!(),
+        };
+        let avp = Self { header, value };
+        let mut vec = vec![0u8; avp.get_padding() as usize];
+        reader.read_exact(&mut vec)?;
+        Ok(avp)
+    }
+
     pub fn get_length(&self) -> u32 {
-        self.header.length + self.value.len()
+        self.header.length
     }
 
     pub fn get_padding(&self) -> u32 {
         let remainder = (self.header.length + self.value.len()) % 4;
-        if remainder != 0 { 4 - remainder } else { 0 }
+        if remainder != 0 { 4 - remainder + 1 } else { 0 }
     }
 
     fn add_padding<W: Write>(&self, writer: &mut W) -> DiameterResult<()> {
