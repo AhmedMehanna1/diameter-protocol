@@ -1,7 +1,7 @@
 use crate::errors::DiameterResult;
 use crate::impl_avp_data_encode_to_address;
 use crate::modeling::avp::avp::AvpValue;
-use crate::modeling::avp::data::AvpData;
+use crate::modeling::avp::AvpData;
 use std::io::Read;
 use std::net::Ipv6Addr;
 

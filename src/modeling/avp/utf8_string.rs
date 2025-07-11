@@ -1,7 +1,6 @@
 use crate::errors::DiameterResult;
-use crate::errors::Error::DecodeError;
 use crate::modeling::avp::avp::AvpValue;
-use crate::modeling::avp::data::AvpData;
+use crate::modeling::avp::AvpData;
 use std::io::{Read, Write};
 
 pub type UTF8String = AvpData<String>;
@@ -21,12 +20,9 @@ impl UTF8String {
 
     pub(super) fn decode_from<R: Read>(
         reader: &mut R,
-        length: Option<usize>,
+        length: usize,
     ) -> DiameterResult<AvpData<String>> {
-        let mut buffer = match length {
-            None => Err(DecodeError("Length is required to parse UTF8String")),
-            Some(length) => Ok(vec![0u8; length]),
-        }?;
+        let mut buffer = vec![0u8; length];
         reader.read_exact(&mut buffer)?;
         let string = String::from_utf8(buffer).unwrap();
         Ok(UTF8String::new(string))

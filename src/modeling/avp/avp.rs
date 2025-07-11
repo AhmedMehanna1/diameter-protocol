@@ -28,6 +28,7 @@
 //!
 
 use crate::errors::DiameterResult;
+use crate::errors::Error::DecodeError;
 use crate::modeling::avp::enumerated::Enumerated;
 use crate::modeling::avp::float32::Float32;
 use crate::modeling::avp::float64::Float64;
@@ -36,7 +37,8 @@ use crate::modeling::avp::integer32::Integer32;
 use crate::modeling::avp::integer64::Integer64;
 use crate::modeling::avp::ipv4::IPv4;
 use crate::modeling::avp::ipv6::IPv6;
-use crate::modeling::avp::octet_string::{DiameterURI, OctetString};
+use crate::modeling::avp::octet_string::DiameterURI;
+use crate::modeling::avp::octet_string::OctetString;
 use crate::modeling::avp::time::Time;
 use crate::modeling::avp::unsigned32::Unsigned32;
 use crate::modeling::avp::unsigned64::Unsigned64;
@@ -69,7 +71,6 @@ pub enum AvpFlags {
 
 #[derive(Debug)]
 pub enum AvpType {
-    Unknown,
     AddressIPv4,
     AddressIPv6,
     Identity,
@@ -85,6 +86,7 @@ pub enum AvpType {
     Unsigned32,
     Unsigned64,
     UTF8String,
+    Unknown,
 }
 
 #[derive(Debug)]
@@ -121,11 +123,7 @@ impl AvpFlags {
     }
 
     fn has_vendor_bit(flag: u8) -> bool {
-        if Self::VENDOR_FLAG_BIT & flag == Self::VENDOR_FLAG_BIT {
-            true
-        } else {
-            false
-        }
+        Self::VENDOR_FLAG_BIT & flag == Self::VENDOR_FLAG_BIT
     }
 }
 
@@ -175,7 +173,7 @@ impl AvpHeader {
 
 impl Avp {
     pub fn new<T: Into<AvpValue>>(
-        code: CommandCode,
+        code: u32,
         flags: AvpFlags,
         vendor_id: Option<u32>,
         value: T,
@@ -187,7 +185,7 @@ impl Avp {
         };
         Self {
             header: AvpHeader {
-                code: code.get_code(),
+                code,
                 flags: avp_flags,
                 length,
                 vendor_id,
@@ -211,35 +209,30 @@ impl Avp {
             .unwrap_or(&AvpType::Unknown);
         dbg!(avp_type);
 
+        let value_length = match header.vendor_id {
+            Some(_) => (header.length - 12) as usize,
+            None => (header.length - 8) as usize,
+        };
+
         let value: AvpValue = match avp_type {
-            AvpType::Unsigned32 => Unsigned32::decode_from(reader)?.into(),
-            AvpType::Identity => Identity::decode_from(
-                reader,
-                match header.vendor_id {
-                    Some(_) => Some((header.length - 12) as usize),
-                    None => Some((header.length - 8) as usize),
-                },
-            )?
-            .into(),
-            AvpType::UTF8String => UTF8String::decode_from(
-                reader,
-                match header.vendor_id {
-                    Some(_) => Some((header.length - 12) as usize),
-                    None => Some((header.length - 8) as usize),
-                },
-            )?
-            .into(),
+            AvpType::AddressIPv4 => IPv4::decode_from(reader)?.into(),
+            AvpType::AddressIPv6 => IPv6::decode_from(reader)?.into(),
+            AvpType::Identity => Identity::decode_from(reader, value_length)?.into(),
+            AvpType::DiameterURI => DiameterURI::decode_from(reader, value_length)?.into(),
             AvpType::Enumerated => Enumerated::decode_from(reader)?.into(),
-            AvpType::Grouped => Grouped::decode_from(
-                reader,
-                match header.vendor_id {
-                    Some(_) => (header.length - 12) as usize,
-                    None => (header.length - 8) as usize,
-                },
-                Arc::clone(&dict),
-            )?
-            .into(),
-            _ => todo!(),
+            AvpType::Float32 => Float32::decode_from(reader)?.into(),
+            AvpType::Float64 => Float64::decode_from(reader)?.into(),
+            AvpType::Grouped => {
+                Grouped::decode_from(reader, value_length, Arc::clone(&dict))?.into()
+            }
+            AvpType::Integer32 => Integer32::decode_from(reader)?.into(),
+            AvpType::Integer64 => Integer64::decode_from(reader)?.into(),
+            AvpType::OctetString => OctetString::decode_from(reader, value_length)?.into(),
+            AvpType::Time => Time::decode_from(reader)?.into(),
+            AvpType::Unsigned32 => Unsigned32::decode_from(reader)?.into(),
+            AvpType::Unsigned64 => Unsigned64::decode_from(reader)?.into(),
+            AvpType::UTF8String => UTF8String::decode_from(reader, value_length)?.into(),
+            AvpType::Unknown => Err(DecodeError("Unknown AVP type to be decoded"))?,
         };
         let avp = Self { header, value };
         let mut vec = vec![0u8; avp.get_padding() as usize];

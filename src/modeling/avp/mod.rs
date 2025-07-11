@@ -1,5 +1,4 @@
 pub mod avp;
-pub mod data;
 pub mod enumerated;
 pub mod float32;
 pub mod float64;
@@ -16,3 +15,16 @@ pub mod utf8_string;
 
 #[macro_use]
 pub mod macros;
+
+#[derive(Debug)]
+pub struct AvpData<T>(pub(super) T);
+
+impl<T> AvpData<T> {
+    pub fn new(data: T) -> Self {
+        Self(data)
+    }
+
+    pub fn value(&self) -> &T {
+        &self.0
+    }
+}

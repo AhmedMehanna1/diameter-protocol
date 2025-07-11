@@ -1,3 +1,8 @@
+/*
+Author: Mr. Jason Lee -> https://github.com/lwlee2608/diameter-rs
+Updated by: Ahmed Mehanna -> https://github.com/AhmedMehanna1/diameter-protocol
+ */
+
 use crate::modeling::avp::avp::AvpType;
 use crate::modeling::message::application_id::ApplicationId;
 use crate::modeling::message::command_code::CommandCode;
@@ -95,14 +100,6 @@ impl Dictionary {
             None => None,
         }
     }
-
-    // pub fn get_application_id_by_name(&self, name: &str) -> Option<ApplicationId> {
-    //     self.applications.get(name).map(|app| *app)
-    // }
-    //
-    // pub fn get_command_code_by_name(&self, name: &str) -> Option<CommandCode> {
-    //     self.commands.get(name).map(|code| *code)
-    // }
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -176,8 +173,6 @@ struct Item {
 pub fn parse(xml: &str, dictionary: &mut Dictionary) {
     let dict: Diameter = from_str(xml).unwrap();
 
-    // TODO Dictionary need to include avp that matches its application and command code
-
     dict.applications.iter().for_each(|app| {
         let app_id = app.id.parse::<u32>().unwrap();
         println!("{}", app_id);
@@ -203,7 +198,6 @@ pub fn parse(xml: &str, dictionary: &mut Dictionary) {
                 "DiameterIdentity" => AvpType::Identity,
                 "DiameterURI" => AvpType::DiameterURI,
                 "Time" => AvpType::Time,
-                // "Address" => AvpType::Address,
                 "IPv4" => AvpType::AddressIPv4,
                 "IPv6" => AvpType::AddressIPv6,
                 "Float32" => AvpType::Float32,

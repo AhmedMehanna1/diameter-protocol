@@ -41,7 +41,7 @@ impl TryFrom<u32> for CommandCode {
             275 => Ok(CommandCode::SessionTermination),
             280 => Ok(CommandCode::DeviceWatchdog),
             282 => Ok(CommandCode::DisconnectPeer),
-            _ => Err(DecodeError("Undefined command code"))?,
+            _ => Err(DecodeError("Undefined command code")),
         }
     }
 }

@@ -1,7 +1,6 @@
 use crate::errors::DiameterResult;
 use crate::modeling::avp::avp::{Avp, AvpFlags, AvpValue};
-use crate::modeling::avp::data::AvpData;
-use crate::modeling::message::command_code::CommandCode;
+use crate::modeling::avp::AvpData;
 use crate::modeling::message::dictionary::Dictionary;
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -45,13 +44,7 @@ impl Grouped {
         self.0.push(avp);
     }
 
-    pub fn add_avp(
-        &mut self,
-        code: CommandCode,
-        vendor_id: Option<u32>,
-        flags: AvpFlags,
-        value: AvpValue,
-    ) {
+    pub fn add_avp(&mut self, code: u32, vendor_id: Option<u32>, flags: AvpFlags, value: AvpValue) {
         let avp = Avp::new(code, flags, vendor_id, value);
         self.add(avp);
     }

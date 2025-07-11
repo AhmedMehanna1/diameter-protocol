@@ -1,7 +1,11 @@
+/*
+    Credit to: Mr. Jason Lee
+*/
+
 use crate::errors::Error::EncodeError;
 use crate::errors::{DiameterResult, Error};
 use crate::modeling::avp::avp::AvpValue;
-use crate::modeling::avp::data::AvpData;
+use crate::modeling::avp::AvpData;
 use chrono::{DateTime, TimeZone, Utc};
 use std::io::{Read, Write};
 

@@ -1,6 +1,6 @@
 use crate::errors::DiameterResult;
 use crate::errors::Error::ClientError;
-use crate::modeling::diameter::{DiameterHeader, DiameterMessage};
+use crate::modeling::diameter::DiameterMessage;
 use crate::modeling::message::dictionary::Dictionary;
 use std::io::Write;
 use std::net::{Shutdown, TcpStream};
@@ -42,6 +42,7 @@ impl DiameterClient {
         if let Some(ref mut stream) = self.stream {
             let mut buffer = vec![];
             message.encode_to(&mut buffer)?;
+            // buffer.insert(6, 15u8);
             stream.write_all(&buffer)?;
             let response_diameter_message =
                 DiameterMessage::decode_from(stream, Arc::clone(&dict))?;
