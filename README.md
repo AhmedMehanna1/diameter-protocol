@@ -55,41 +55,37 @@ fn main() -> DiameterResult<()> {
         3102381851,
     );
 
-    ccr.add_avp(Avp::new(263, M, None, UTF8String::from_str("a")));
-    ccr.add_avp(Avp::new(
-        264,
-        M,
-        None,
-        Identity::from_str("host.example.com"),
-    ));
-    ccr.add_avp(Avp::new(
+    ccr.add(Avp::new(263, M, None, UTF8String::from_str("a")));
+    ccr.add_avp(264, M, None, Identity::from_str("host.example.com"));
+    ccr.add(Avp::new(
         296,
         M,
         None,
         Identity::from_str("realm.example.com"),
     ));
-    ccr.add_avp(Avp::new(263, M, None, UTF8String::from_str("ses;12345888")));
-    ccr.add_avp(Avp::new(416, M, None, Enumerated::new(1)));
-    ccr.add_avp(Avp::new(415, M, None, Unsigned32::new(1000)));
-    ccr.add_avp(Avp::new(
+    ccr.add(Avp::new(263, M, None, UTF8String::from_str("ses;12345888")));
+    ccr.add(Avp::new(416, M, None, Enumerated::new(1)));
+    ccr.add(Avp::new(415, M, None, Unsigned32::new(1000)));
+    ccr.add(Avp::new(
         264,
         M,
         None,
         Identity::from_str("host.example.com"),
     ));
-    ccr.add_avp(Avp::new(
+    ccr.add(Avp::new(
         296,
         M,
         None,
         Identity::from_str("realm.example.com"),
     ));
-    ccr.add_avp(Avp::new(416, M, None, Enumerated::new(1)));
-    ccr.add_avp(Avp::new(415, M, None, Unsigned32::new(1000)));
+    ccr.add(Avp::new(416, M, None, Enumerated::new(1)));
+    ccr.add(Avp::new(415, M, None, Unsigned32::new(1000)));
 
     let mut client = DiameterClient::new("127.0.0.1:3868");
     client.connect()?;
-    client.send_message(&mut ccr, dict)?;
+    let cca: DiameterMessage = client.send_message(&mut ccr, dict)?;
     client.close()?;
+    println!("{:?}", cca);
     Ok(())
 }
 ```
