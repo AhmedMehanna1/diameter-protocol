@@ -1,8 +1,10 @@
 [package]
-name = "diameter"
+name = "diameter-protocol"
 version = "0.1.0"
 edition = "2024"
+authors = ["Ahmed Mehanna"]
 description = "Rust Implementation of the Diameter Protocol."
+license = "MIT"
 keywords = [
     "diameter",
     "network",
