@@ -1,11 +1,21 @@
 [package]
-name = "core"
+name = "diameter"
 version = "0.1.0"
 edition = "2024"
+description = "Rust Implementation of the Diameter Protocol."
+keywords = [
+    "diameter",
+    "network",
+    "diameter-stack"
+]
+repository = "https://github.com/AhmedMehanna1/diameter-protocol"
+
+[[example]]
+name = "diameter-client"
+path = "example/client.rs"
 
 [dependencies]
 chrono = "0.4"
-tokio = "1.45.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde-xml-rs = "0.6.0"
 lazy_static = "1.5.0"
