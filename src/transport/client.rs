@@ -38,16 +38,13 @@ impl DiameterClient {
         &mut self,
         message: &mut DiameterMessage,
         dict: Arc<Dictionary>,
-    ) -> DiameterResult<()> {
+    ) -> DiameterResult<DiameterMessage> {
         if let Some(ref mut stream) = self.stream {
             let mut buffer = vec![];
             message.encode_to(&mut buffer)?;
-            // buffer.insert(6, 15u8);
             stream.write_all(&buffer)?;
-            let response_diameter_message =
-                DiameterMessage::decode_from(stream, Arc::clone(&dict))?;
-            println!("{:?}", response_diameter_message);
-            Ok(())
+            let answer = DiameterMessage::decode_from(stream, Arc::clone(&dict))?;
+            Ok(answer)
         } else {
             Err(ClientError("Connection not established yet!"))
         }

@@ -175,7 +175,6 @@ pub fn parse(xml: &str, dictionary: &mut Dictionary) {
 
     dict.applications.iter().for_each(|app| {
         let app_id = app.id.parse::<u32>().unwrap();
-        println!("{}", app_id);
         let app_id: ApplicationId = ApplicationId::try_from(app_id).unwrap();
         dictionary.applications.insert(app.name.clone(), app_id);
 

@@ -24,7 +24,6 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-// io error
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         Error::IoError(err)

@@ -31,7 +31,7 @@
 //! ```
 
 use crate::errors::DiameterResult;
-use crate::modeling::avp::avp::Avp;
+use crate::modeling::avp::avp::{Avp, AvpFlags, AvpValue};
 use crate::modeling::message::application_id::ApplicationId;
 use crate::modeling::message::command_code::CommandCode;
 use crate::modeling::message::command_flags::CommandFlag;
@@ -78,9 +78,20 @@ impl DiameterMessage {
         }
     }
 
-    pub fn add_avp(&mut self, avp: Avp) {
+    pub fn add(&mut self, avp: Avp) {
         self.header.message_length += avp.get_length() + avp.get_padding();
         self.avps.push(avp);
+    }
+
+    pub fn add_avp<T: Into<AvpValue>>(
+        &mut self,
+        code: u32,
+        flags: AvpFlags,
+        vendor_id: Option<u32>,
+        value: T,
+    ) {
+        let avp: Avp = Avp::new(code, flags, vendor_id, value);
+        self.add(avp);
     }
 
     pub fn encode_to<W: Write>(&mut self, writer: &mut W) -> DiameterResult<()> {
@@ -104,16 +115,8 @@ impl DiameterMessage {
         let mut b = [0u8; 20];
         reader.read_exact(&mut b)?;
 
-        for i in 1..b.len() + 1 {
-            print!("{:08b} ", b[i - 1]);
-            if i % 4 == 0 {
-                println!()
-            }
-        }
-
         let version = b[0];
         let mut message_length = u32::from_be_bytes([0, b[1], b[2], b[3]]);
-        dbg!(message_length);
         let command_flag = b[4];
         let command_code = u32::from_be_bytes([b[4], b[5], b[6], b[7]]);
         let application_id = u32::from_be_bytes([b[8], b[9], b[10], b[11]]);
@@ -132,23 +135,14 @@ impl DiameterMessage {
 
         let mut message = DiameterMessage {
             header,
-            avps: vec![]
+            avps: vec![],
         };
 
-        dbg!(&message.header);
         message_length -= 20;
         while message_length > 0 {
             let avp = Avp::decode_from(reader, Arc::clone(&dict))?;
-            println!(
-                "message length: {} avp length: {}",
-                message_length,
-                avp.get_length()
-            );
-            println!("avp header: {:?}", avp);
-            dbg!(message_length, avp.get_length(), avp.get_padding());
             message_length = message_length - avp.get_length() - avp.get_padding();
-            dbg!(message_length);
-            message.add_avp(avp);
+            message.add(avp);
         }
         Ok(message)
     }

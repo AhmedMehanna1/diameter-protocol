@@ -43,7 +43,6 @@ use crate::modeling::avp::time::Time;
 use crate::modeling::avp::unsigned32::Unsigned32;
 use crate::modeling::avp::unsigned64::Unsigned64;
 use crate::modeling::avp::utf8_string::{Identity, UTF8String};
-use crate::modeling::message::command_code::CommandCode;
 use crate::modeling::message::dictionary::Dictionary;
 use std::fmt::Debug;
 use std::io::{Read, Write};
@@ -131,7 +130,6 @@ impl AvpHeader {
     fn encode_to<W: Write>(&self, avp_length: u32, writer: &mut W) -> DiameterResult<()> {
         writer.write_all(&self.code.to_be_bytes())?;
         writer.write(&[self.flags])?;
-        println!("avp_length: {}", avp_length);
         writer.write_all(&avp_length.to_be_bytes()[1..])?;
         match self.vendor_id {
             Some(vendor_id) => {
@@ -145,12 +143,6 @@ impl AvpHeader {
     pub fn decode_from<R: Read>(reader: &mut R) -> DiameterResult<Self> {
         let mut b = [0u8; 8];
         reader.read_exact(&mut b)?;
-        for i in 1..b.len() + 1 {
-            print!("{:08b} ", b[i - 1]);
-            if i % 4 == 0 {
-                println!()
-            }
-        }
         let command_code = u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
         let flag = b[4];
         let length = u32::from_be_bytes([0, b[5], b[6], b[7]]);
@@ -207,7 +199,6 @@ impl Avp {
         let avp_type = dict
             .get_avp_type(header.code, header.vendor_id)
             .unwrap_or(&AvpType::Unknown);
-        dbg!(avp_type);
 
         let value_length = match header.vendor_id {
             Some(_) => (header.length - 12) as usize,
