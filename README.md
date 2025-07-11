@@ -17,6 +17,7 @@ Add this crate to your Rust project by adding the following to your `Cargo.toml`
 diameter-protocol = "^0.1"
 ```
 
+Or use **cargo** command
 ```shell
 cargo add diameter-protocol
 ```
