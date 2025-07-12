@@ -8,7 +8,9 @@ license = "Apache-2.0 MIT"
 keywords = [
     "diameter",
     "network",
-    "diameter-stack"
+    "diameter-stack",
+    "gx-interface",
+    "diameter-interface"
 ]
 repository = "https://github.com/AhmedMehanna1/diameter-protocol"
 
