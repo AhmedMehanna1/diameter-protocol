@@ -2,6 +2,17 @@
 
 Rust Implementation of the Diameter Protocol.
 
+[![Crates.io][crates-badge]][crates-url]
+[![MIT licensed][mit-badge]][mit-url]
+[![MIT licensed][apache-badge]][apache-url]
+
+[crates-badge]: https://img.shields.io/crates/v/diameter-protocol.svg
+[crates-url]: https://crates.io/crates/diameter-protocol
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: LICENSE-MIT
+[apache-badge]: https://img.shields.io/badge/license-Apache-blue.svg
+[apache-url]: LICENSE-APACHE
+
 ## Overview
 
 This library provides a Rust implementation of the Diameter protocol, as defined by [RFC 6733](https://tools.ietf.org/html/rfc6733).
