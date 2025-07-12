@@ -1,16 +1,16 @@
-use diameter_protocol::errors::DiameterResult;
-use diameter_protocol::modeling::avp::avp::Avp;
-use diameter_protocol::modeling::avp::avp::AvpFlags::M;
-use diameter_protocol::modeling::avp::enumerated::Enumerated;
-use diameter_protocol::modeling::avp::unsigned32::Unsigned32;
-use diameter_protocol::modeling::avp::utf8_string::{Identity, UTF8String};
-use diameter_protocol::modeling::diameter::DiameterMessage;
-use diameter_protocol::modeling::message::application_id::ApplicationId;
-use diameter_protocol::modeling::message::command_code::CommandCode;
-use diameter_protocol::modeling::message::command_flags::CommandFlag;
-use diameter_protocol::modeling::message::dictionary;
-use diameter_protocol::modeling::message::dictionary::Dictionary;
-use diameter_protocol::transport::client::DiameterClient;
+use diameter_interface::errors::DiameterResult;
+use diameter_interface::modeling::avp::avp::Avp;
+use diameter_interface::modeling::avp::avp::AvpFlags::M;
+use diameter_interface::modeling::avp::enumerated::Enumerated;
+use diameter_interface::modeling::avp::unsigned32::Unsigned32;
+use diameter_interface::modeling::avp::utf8_string::{Identity, UTF8String};
+use diameter_interface::modeling::diameter::DiameterMessage;
+use diameter_interface::modeling::message::application_id::ApplicationId;
+use diameter_interface::modeling::message::command_code::CommandCode;
+use diameter_interface::modeling::message::command_flags::CommandFlag;
+use diameter_interface::modeling::message::dictionary;
+use diameter_interface::modeling::message::dictionary::Dictionary;
+use diameter_interface::transport::client::DiameterClient;
 use std::sync::Arc;
 
 fn main() -> DiameterResult<()> {
