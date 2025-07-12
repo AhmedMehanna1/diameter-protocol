@@ -7,7 +7,7 @@ Rust Implementation of the Diameter Protocol.
 [![MIT licensed][apache-badge]][apache-url]
 
 [crates-badge]: https://img.shields.io/crates/v/diameter-interface.svg
-[crates-url]: https://crates.io/crates/diameter-protocol
+[crates-url]: https://crates.io/crates/diameter-interface
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: LICENSE-MIT
 [apache-badge]: https://img.shields.io/badge/License-Apache_2.0-blue.svg
